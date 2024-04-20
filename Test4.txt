@@ -1,0 +1,30 @@
+procedure assign (w, z : real);
+var
+temp: real;
+begin
+temp := w;
+repeat
+temp := temp -z;
+until (temp <=0);
+if (temp = 0) then
+begin
+a := 10;
+b := 20;
+end
+else
+begin
+a := 0;
+b := 0;
+end;
+end;
+begin
+s := 'The end';
+writeLn( ' x = ' );
+readLn(x);
+writeLn( ' y = ' );
+readLn(y);
+if (calc(x,y) = 5) then
+assign(x,y)
+else
+writeLn(s);
+end.
