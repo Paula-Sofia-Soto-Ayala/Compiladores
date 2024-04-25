@@ -4,16 +4,20 @@ from typing import List
 
 # Symbol table entry class
 class Symbol:
+    # Symbol constructor
     def __init__(self, id: int, name: str, type: str):
         self.id = id
         self.name = name
         self.type = type
+    # Overrides hash to only use the name and type
     def __hash__(self) -> int:
         return hash((self.name, self.type))
+    # Overrides the eq function to only use name and type
     def __eq__(self, other) -> bool:
         if not isinstance(other, Symbol):
             return False
         return (self.name, self.type) == (other.name, other.type)
+    # Human readable toString
     def __str__(self) -> str:
         return f"{self.id}: {self.name} - {self.type}"
     
@@ -631,21 +635,33 @@ def tokenize(source: str) -> TokenizerResult:
                 lexeme += char
                 index += 1
 
+            # create a new token with the lexeme or if missing the current char
+            # the char is the backup because single char end states are not accumulated
             token = create_token(lexeme or char, next_state)
             if token:
                 (name, type) = token
 
+                # Decide on which symbol list to add the new symbol
                 symbol_list = symbol_table.get(type)
                 if symbol_list is not None:
                     id = len(symbol_list) + 1
                     symbol = Symbol(id, name, type)
                     token = (name, type, id)
 
+                    # if adding to a set use `add` else use `append`
                     if isinstance(symbol_list, set):
                         symbol_list.add(symbol)
+                        
+                        # If the symbol already exists update the token ID so they match
+                        for s in symbol_list:
+                            if s == symbol:
+                                # Reuse the same ID from the existing symbol
+                                token = (name, type, s.id)
+
                     else:
                         symbol_list.append(symbol)
 
+                # Save token to token stream
                 tokens.append(token)
 
             # if lexeme was delimiter move to the next char
