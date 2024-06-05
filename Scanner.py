@@ -6,21 +6,32 @@ from AstNodes import Token
 # Symbol table entry class
 class Symbol:
     # Symbol constructor
+    var_type: str | None = None
+    ret_type: str | None = None
+    sub_type: str | None = None
+
     def __init__(self, id: int, name: str, type: str):
         self.id = id
         self.name = name
-        self.type = type
+        self.symbol_type = type
+
     # Overrides hash to only use the name and type
     def __hash__(self) -> int:
-        return hash((self.name, self.type))
+        return hash((self.name, self.symbol_type))
     # Overrides the eq function to only use name and type
     def __eq__(self, other) -> bool:
         if not isinstance(other, Symbol):
             return False
-        return (self.name, self.type) == (other.name, other.type)
+        return (self.name, self.symbol_type) == (other.name, other.symbol_type)
     # Human readable toString
     def __str__(self) -> str:
-        return f"{self.id}: {self.name} - {self.type}"
+        if self.sub_type:
+            return f"{self.id}: {self.sub_type}({self.name}) -> {self.ret_type}"
+        
+        if self.var_type:
+            return f"{self.id}: {self.name} - {self.var_type}"
+
+        return f"{self.id}: {self.name} - {self.symbol_type}"
     
 # Keywords and their corresponding token names.       
 keywords = {
@@ -654,10 +665,7 @@ def tokenize(source: str) -> TokenizerResult:
                     tokens.append(num_tok)
                     symbol_list.append(symbol)
 
-                    print(num_tok)
-
                 if range_tok:
-                    print(range_tok)
                     tokens.append(range_tok)
 
                 current_state = 0
@@ -698,7 +706,6 @@ def tokenize(source: str) -> TokenizerResult:
                         symbol_list.append(symbol)
 
                 # Save token to token stream
-                print(token)
                 tokens.append(token)
 
             # if lexeme was delimiter move to the next char
@@ -770,25 +777,27 @@ class Lexer:
 
         return result
 
-def main():
-    args = sys.argv
-    if len(args) > 1:
-        lexer = Lexer()
-        result = lexer.start(args[1])
-
+    def print_tokens(self):
         # Print the tokens in the token stream
         print("\nTOKEN STREAM")
-        for token in result.tokens:
+        for token in self.tokens:
             print(token)
 
+    def print_symbols(self):
         # Print the contents of the symbol table
         print("\nSYMBOL TABLE")
-        for type, symbols in result.symbols.items():
+        for type, symbols in self.symbols.items():
             print(f"\n{type.upper()}(s)")
             print("\nID | CONTENT | TYPE")
 
             for symbol in symbols:
                 print(symbol)
+
+def main():
+    args = sys.argv
+    if len(args) > 1:
+        lexer = Lexer()
+        lexer.start(args[1])
     else:
         print("No file provided for lexing.")
 

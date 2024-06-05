@@ -7,7 +7,7 @@ from Scanner import Lexer
 from AstNodes import Token
 from AstNodes import *
 
-# Represents a basic parser, takes a deque of  Token as input during initializatio
+# Represents a basic parser, takes a deque of  Token as input during initialization
 class Parser:
     # Initializes the Parser with a deque of Token objects
     def __init__(self, tokens: deque[Token]) -> None:
@@ -96,7 +96,7 @@ class Parser:
 
             while self.peek_token().type == "identifier":
                 # Parse a variable list separated by commas
-                vars = self.parse_var_list()
+                vars.extend(self.parse_var_list())
                 self.expect_value(";", "Missing semi-colon")
 
             print("Parsed variables block correctly")
@@ -108,7 +108,7 @@ class Parser:
 
     # Parses a variable list separated by commas
     def parse_var_list(self) -> list[VarNode]:
-        output = []
+        output: list[Token] = []
         while self.have_tokens():
             # Expect identifiers until we see a colon char ':'
             output.append(self.expect_type("identifier", "Expected variable identifier"))
@@ -619,12 +619,17 @@ def main():
 
         print("\n--Finished syntax anaylisis--\n")
 
-        # Visit AST and update symbol table
-        # visitor = TreeVisitor()
-        # visitor.visit(tree, **lexer.symbols)
-
         # Print the generated AST Nodes
-        # print(tree)
+        # print(f"AST: {tree}")
+
+
+        print("\n--Started semantical analysis--\n")
+        # Visit AST and update symbol table
+        visitor = TreeVisitor(symbols=lexer.symbols)
+        visitor.visit(tree)
+
+        # Print the updated symbol table
+        lexer.print_symbols()
     else:
         print("No file provided for parsing")
 
