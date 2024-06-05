@@ -3,8 +3,6 @@
 
 program HelloWorld;
 
-+
-
 (* This is the main program block *)
 begin
    writeLn( ' Hello World ' );

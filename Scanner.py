@@ -1,6 +1,7 @@
 import os 
 import sys
 from typing import List
+from AstNodes import Token
 
 # Symbol table entry class
 class Symbol:
@@ -60,6 +61,7 @@ operators = {
     '=': 'eq',
     '>': 'more_than',
     '>=': 'more_eq_than',
+    '..': 'range_op'
 }
 
 # Punctuation characters and their corresponding token names.
@@ -467,6 +469,9 @@ transition_table = {
     (14, 'whitespace'): 14,
     (14, 'eof'): 41,
     (14, 'other'): 14,
+
+    (34, '.'): 45,
+    (34, 'other'): 46
 }
 
 # Final states of transition table --> State: Token Type.
@@ -496,6 +501,7 @@ final_states = {
     37: 'closed_sqre_bracket',
     38: 'single_line_comment',
     39: 'type_assignment',
+    45: 'range_op'
 }
 
 # Error states of the transition tables --> State: Error type.
@@ -630,6 +636,36 @@ def tokenize(source: str) -> TokenizerResult:
                 lexeme += char
                 index += 1
 
+            # special lookahead logic for range operator
+            if current_state == 5 and char == '.':
+                num = lexeme[:-1]
+                range = lexeme[-1] + char
+
+                num_tok = create_token(num, 16)
+                range_tok = create_token(range, 45)
+
+                symbol_list = symbol_table["integer"]
+                if num_tok and isinstance(symbol_list, List):
+                    (name, type) = num_tok
+                    id = len(symbol_list) + 1
+
+                    symbol = Symbol(id, name, type)
+                    num_tok = (name, type, id)
+                    tokens.append(num_tok)
+                    symbol_list.append(symbol)
+
+                    print(num_tok)
+
+                if range_tok:
+                    print(range_tok)
+                    tokens.append(range_tok)
+
+                current_state = 0
+                index += 1
+                lexeme = ''
+
+                continue
+
             # two char operators, i.e: >= or :=
             if is_operator(lexeme) and is_operator(char):
                 lexeme += char
@@ -662,6 +698,7 @@ def tokenize(source: str) -> TokenizerResult:
                         symbol_list.append(symbol)
 
                 # Save token to token stream
+                print(token)
                 tokens.append(token)
 
             # if lexeme was delimiter move to the next char
@@ -707,19 +744,37 @@ def reset_lexeme(current_state: int, next_state: int):
     
     return current_state != next_state
 
-# Opens file, tokenizes it and returns result
-def lexer(filename) -> TokenizerResult:
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, filename)
-    source = read_file(file_path)
-    result = tokenize(source)
+class Lexer:
+    tokens: list[Token]
+    symbols: dict[str, List[Symbol] | set[Symbol]]
 
-    return result
+    # Opens file, tokenizes it and returns result
+    def start(self, filename: str) -> TokenizerResult:
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        file_path = os.path.join(dir_path, filename)
+
+        source = read_file(file_path)
+        result = tokenize(source)
+        tokens: list[Token] = []
+
+        for token in result.tokens:
+            if len(token) == 2:
+                (name, type) = token
+                tokens.append(Token(name, type, None))
+            else:
+                (name, type, id) = token
+                tokens.append(Token(name, type, id))
+
+        self.tokens = tokens
+        self.symbols = result.symbols
+
+        return result
 
 def main():
     args = sys.argv
     if len(args) > 1:
-        result = lexer(args[1])
+        lexer = Lexer()
+        result = lexer.start(args[1])
 
         # Print the tokens in the token stream
         print("\nTOKEN STREAM")
