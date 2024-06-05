@@ -1,5 +1,5 @@
-{ Example #3 }
-program Ejemplo3;
+{ Example #5 }
+program Ejemplo5;
 (* Var declaration section*)
 var
 a, b : integer;

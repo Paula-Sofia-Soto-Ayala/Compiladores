@@ -5,16 +5,17 @@ from AstNodes import *
 SymbolTable = dict[str, List[Symbol] | set[Symbol]]
 
 class TreeVisitor:
-
+    """
+    Symbol table has shape:
+    symbol_table: dict[str, List[Symbol] | set[Symbol]] = {
+        'identifier': set([]),
+        'real': [],
+        'integer': [],
+        'string': []
+    }
+    """
     symbols: dict[str, List[Symbol] | set[Symbol]]
 
-    # Symbol table has shape:
-    # symbol_table: dict[str, List[Symbol] | set[Symbol]] = {
-    #     'identifier': set([]),
-    #     'real': [],
-    #     'integer': [],
-    #     'string': []
-    # }
 
     def __init__(self, symbols: dict[str, List[Symbol] | set[Symbol]]) -> None:
         self.symbols = symbols
@@ -33,6 +34,12 @@ class TreeVisitor:
 
     def visit_program(self, node: ProgramNode):
         print(f"Program: {node.name.val}")
+        identifiers: set[Symbol] = self.symbols["identifier"]
+
+        # Update the program symbol
+        for symbol in identifiers:
+            if symbol.name == node.name.val:
+                symbol.sub_type = "program"
 
     def visit_ident(self, node: IdentNode):
         self.visit(node.value)

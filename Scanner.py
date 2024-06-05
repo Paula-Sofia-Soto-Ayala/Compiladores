@@ -27,7 +27,7 @@ class Symbol:
     # Human readable toString
     def __str__(self) -> str:
         if self.sub_type:
-            return f"{self.id}: {self.sub_type}({self.name}) -> {self.ret_type}"
+            return f"{self.id}: {self.sub_type} ({self.name}) -> {self.ret_type}"
         
         if self.var_type:
             return f"{self.id}: {self.name} - {self.var_type}"
@@ -791,7 +791,10 @@ class Lexer:
             print(f"\n{type.upper()}(s)")
             print("\nID | CONTENT | TYPE")
 
-            for symbol in symbols:
+            # Sort the symbols before printing them
+            sorted_symbols = sorted(symbols, key=lambda symbol: symbol.id)
+
+            for symbol in sorted_symbols:
                 print(symbol)
 
 def main():

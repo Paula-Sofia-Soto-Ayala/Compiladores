@@ -53,6 +53,7 @@ class Parser:
     def error(self, message: str):
         raise SyntaxError(message)
 
+    # start → program ID ; vars_block functions_block procedures_block begin statement_list end .
     def start(self) -> SourceNode:
         # Parses the program header
         prog = self.parse_program_head()
@@ -86,6 +87,7 @@ class Parser:
         return ProgramNode(ident)
 
     # Parses a variable declaration block inside a program/function/procedure
+    # vars_block → var ID var_list’ : type_specifier ; var_declaration’ | ε
     def parse_variables(self) -> VariablesNode:
         start = None
         vars: list[VarNode] = []
@@ -107,6 +109,7 @@ class Parser:
         return VariablesNode()
 
     # Parses a variable list separated by commas
+    # var_declaration’ → var_list : type_specifier ; var_declaration’ | ε
     def parse_var_list(self) -> list[VarNode]:
         output: list[Token] = []
         while self.have_tokens():
@@ -128,6 +131,8 @@ class Parser:
         return [ VarNode(name, type) for name in output ]
 
     # Parses the program's subprograms (function|procedure)
+    # functions_block’ → function ID( params ) : type_specifier ; local_declarations begin statement_list end ; functions_block’ | ε
+    # procedures_block’ → procedure ID( params ) ; local_declarations begin statement_list end ; procedures_block’ | ε
     def parse_subprogs(self) -> list[SubprogNode]:
         progs = []
         while (token := self.peek_token().val) in ("function", "procedure"):
@@ -141,6 +146,7 @@ class Parser:
         node = self.parse_subprog_header(token, FunctionNode if token == "function" else ProcedureNode)
 
         # Parse local declarations
+        # local_declarations → vars_block | ε
         node.vars = self.parse_variables()
 
         # Parse function body
@@ -161,6 +167,7 @@ class Parser:
         params = []
         while self.peek_token().type == "identifier":
             # Parse a list of arguments separated by semicolons
+            # params → ID var_list’ : type_specifier ; param_list’ | ε
             params.extend(self.parse_var_list())
             # Reached end of function params
             if self.peek_token().val == ")":
@@ -184,8 +191,10 @@ class Parser:
         return node(start, name, params, ret_type)
 
     # Parse a statement AST Node
+    # statement_list → statement ; statement_list’
     def parse_statement(self, ignoreSemicolon = False) -> StmtNode:
         # If we see a begin then parse a compound statement
+        # statement_list’ → statement ; statement_list’ | ε
         if self.peek_token().val == "begin":
             return self.compound_statement(ignoreSemicolon)
         # Else parse a simple statement (no semicolon needed)
@@ -193,6 +202,13 @@ class Parser:
             return self.simple_statement()
 
     # Parses a simple statement, which doesn't need a semicolon
+    # statement → ID statement′
+    #   | begin statement_list end
+    #   | if ( logic_expression ) then statement selection_stmt′
+    #   | for ID := int_number to int_number do statement
+    #   | repeat statement_list until ( logic_expression )
+    #   | readln ( ID var_list′ );
+    #   | writeln ( output output_list′) ;
     def simple_statement(self) -> StmtNode:
         match self.peek_token():
             case Token(val="if"):
@@ -216,6 +232,7 @@ class Parser:
                     return self.parse_call()
                 # Or an assignment statement
                 else:
+                    # assignment_stmt’ → arithmetic_expression | STRING
                     return self.parse_assignment()
             case _:
                 # Errors when failing to match any previous statement
@@ -244,6 +261,7 @@ class Parser:
         return CompoundStmtNode(start, stmts)
 
     # Parse a variable assignment statement
+    # var′ → [ arithmetic_expression ] | ε
     def parse_assignment(self) -> StmtNode:
 
         # Expect an identifier to assign to (lhs)
@@ -274,6 +292,8 @@ class Parser:
         self.expect_value("(", "Missing open parenthesis")
 
         # Parse the arguments to be written to IO
+        # output_list’ → output output_list’ | ε
+        # output → arithmetic_expression | STRING | ε
         args = self.parse_arguments(optional=True)
         self.expect_value(")", "Missing closing parenthesis")
 
@@ -281,6 +301,7 @@ class Parser:
         return WriteLnNode(start, args)
 
     # Parse an argument list for subprogram calls / writeLn statements
+    # args → arithmetic_expression arg_list’ | ε
     def parse_arguments(self, optional: bool) -> list[ExprNode]:
         # If arguments are optional no error on empty arguments
         if self.peek_token().val == ")":
@@ -292,6 +313,7 @@ class Parser:
 
         exprs: list[ExprNode] = []
         while self.have_tokens():
+            # arg_list’ → arithmetic_expression arg_list’ | ε
             # Parse the argument expressions individually
             exprs.append(self.parse_expression())
             
@@ -335,6 +357,7 @@ class Parser:
         then_branch = self.parse_statement(ignoreSemicolon=True)
 
         # Optionally parse the ELSE branch with NO semicolon
+        # selection_stmt’ → else statement | ε
         if self.peek_token().val == "else":
             self.expect_value("else", "Missing ELSE keyword")
             # Save the else branch statement
@@ -408,10 +431,12 @@ class Parser:
 
     # Parse an expression Node
     # i.e: func call, identifiers, literals, conditions, array index, etc...
+    # arithmetic_expression → term   arithmetic_expression’
     def parse_expression(self) -> ExprNode:
         return self.parse_equality_expr()
 
     # Lowest precedence expr: equality < relational
+    # relop → <= | < | > | >= | = | <>
     def parse_equality_expr(self) -> ExprNode:
         lhs = self.parse_relational_expr()
         
@@ -429,6 +454,7 @@ class Parser:
         return node(lhs, rhs)
 
     # Higher precedence than equality: relational < addition
+    # relop → <= | < | > | >= | = | <>
     def parse_relational_expr(self) -> ExprNode:
         lhs = self.parse_add_expr()
         
@@ -448,6 +474,7 @@ class Parser:
         return node(lhs, rhs)
 
     # Higher precedence than relational expr: addition < multiplication
+    # arithmetic_expression’ → + term arithmetic_expression’| - term arithmetic_expression’| ε
     def parse_add_expr(self) -> ExprNode:
         lhs = self.parse_mult_expr()
         
@@ -465,6 +492,7 @@ class Parser:
         return node(lhs, rhs)
 
     # Higher precedence than additive expr: multiplication < simple_expr
+    # term’ → * factor term’ | / factor  term’ | ε
     def parse_mult_expr(self) -> ExprNode:
         lhs = self.parse_simple_expr()
         
@@ -483,12 +511,14 @@ class Parser:
 
     # Highest precedence expression
     # Includes: literals, calls, indexing, and nested expressions
+    # Factor → ID factor′ | int_number | real_number | ( arithmetic_operator )
     def parse_simple_expr(self) -> ExprNode:
         token = self.peek_token()
 
         # We've reached a leaf, so we expect a Factor
         if token.type in ["integer", "real", "string"]:
             return self.parse_literal()
+        # factor′ → ( args ) | var′
         elif token.type == "identifier":
             if self.tokens[1].val == "(":
                 # function call
@@ -500,6 +530,7 @@ class Parser:
                 # identifier expression
                 return self.parse_identifier()
         # Otherwise parse an expr inside parenthesis
+        # factor′ → ( args ) | var′
         elif token.val == "(":
             self.next_token()  # consume '('
             output = self.parse_expression()
@@ -523,6 +554,7 @@ class Parser:
         return IndexExpr(name, index)
 
     # Parse a variable indentifier
+    # factor′ → ( args ) | var′
     def parse_identifier(self) -> IdentNode:
         name = self.expect_type("identifier", "Expected an identifier")
 
@@ -553,6 +585,7 @@ class Parser:
         return IntLiteral(token)
 
     # Parse a type declaration
+    # type_specifier → integer | real | string | array [ int_number .. int_number ] of basic_type
     def parse_type(self) -> TypeNode:
         token = self.peek_token()
 
@@ -568,6 +601,7 @@ class Parser:
                 self.error(f"Expected type declaration but got: {token}")
             
     # Parses a simple type declaration
+    # basic_type → integer | real | string
     def parse_simple_type(self) -> TypeNode:
         token = self.next_token()
         match token.val:
@@ -610,13 +644,15 @@ def main():
         lexer = Lexer()
         lexer.start(args[1] or "Test5.txt")
 
+        # Print the token stream
+        # lexer.print_tokens()
+
         print("\n--Finished lexical anaylisis--\n")
 
         print("--Started syntax anaylisis--\n")
         # Create an instance of the parser
         parser = Parser(deque(lexer.tokens))
         tree = parser.start()
-
         print("\n--Finished syntax anaylisis--\n")
 
         # Print the generated AST Nodes
