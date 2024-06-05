@@ -9,6 +9,7 @@ class Symbol:
     var_type: str | None = None
     ret_type: str | None = None
     sub_type: str | None = None
+    content: str | int | float | None = None
 
     def __init__(self, id: int, name: str, type: str):
         self.id = id

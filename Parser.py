@@ -620,8 +620,7 @@ def main():
         print("\n--Finished syntax anaylisis--\n")
 
         # Print the generated AST Nodes
-        # print(f"AST: {tree}")
-
+        print(f"AST: {tree}")
 
         print("\n--Started semantical analysis--\n")
         # Visit AST and update symbol table

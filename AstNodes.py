@@ -410,7 +410,7 @@ class ReadLnNode(StmtNode):
 class ForNode(StmtNode):
     id: str = 'for'
 
-    def __init__(self, start: Token, name: Token, to_num: 'IntLiteral', from_num: 'IntLiteral', statements: list[AstNode]):
+    def __init__(self, start: Token, name: IdentNode, to_num: 'IntLiteral', from_num: 'IntLiteral', statements: list[AstNode]):
         
         """
         Initializes a ForNode.
@@ -438,7 +438,7 @@ class ForNode(StmtNode):
             str: A string representation of the ForNode.
         """
 
-        return f'(for ({self.name.val} {self.from_num} {self.to_num}) {self.stmts})'
+        return f'(for ({self.name} {self.from_num} {self.to_num}) {self.stmts})'
 
 class IfNode(StmtNode):
     id: str = 'if'
