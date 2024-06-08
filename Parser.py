@@ -110,6 +110,7 @@ class Parser:
 
     # Parses a variable list separated by commas
     # var_declaration’ → var_list : type_specifier ; var_declaration’ | ε
+    # var_list’ → , ID var_list’ | ε
     def parse_var_list(self) -> list[VarNode]:
         output: list[Token] = []
         while self.have_tokens():
@@ -665,6 +666,7 @@ def main():
 
         # Print the updated symbol table
         lexer.print_symbols()
+        # lexer.print_tokens()
     else:
         print("No file provided for parsing")
 
